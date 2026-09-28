@@ -1,19 +1,12 @@
-<div align="center">
-
 # ⚡ Win11 Web Terminal
 
-**极简、原生、开箱即用的 Windows 网页终端方案**
-
-基于 Node.js · ConPTY · xterm.js 构建，零复杂依赖，双击即用
+> **极简、原生、开箱即用的 Windows 网页终端方案**  
+> 基于 Node.js · ConPTY · xterm.js 构建，零复杂依赖，双击一键即用。
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-0078D6?logo=windows&logoColor=white)](https://github.com/natef927/win11-web-terminal)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B%20%7C%2020%20LTS-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Architecture](https://img.shields.io/badge/Driver-Windows%20ConPTY-lightgrey)](#-工作原理与架构)
-
-[快速开始](#-一键极速体验) • [核心特性](#-核心特性) • [交互快捷键](#-智能交互与键位支持) • [常见场景](#-核心场景) • [安全与穿透建议](#-安全实践与内网穿透)
-
-</div>
+[![Driver](https://img.shields.io/badge/Driver-Windows%20ConPTY-lightgrey)](https://github.com/natef927/win11-web-terminal)
 
 ---
 
@@ -30,16 +23,3 @@
 ---
 
 ## 🏛️ 工作原理与架构
-
-```text
-┌─────────────────┐       WebSocket (7681)       ┌────────────────────────┐
-│  Browser View   │ ◄──────────────────────────► │    Node.js Server      │
-│  (xterm.js +    │   Bi-directional I/O Stream   │   (Local Static Assets │
-│   Addon-Fit)    │   Resize (Cols x Rows) Sync   │    & WS Event Bridge)  │
-└─────────────────┘                               └───────────┬────────────┘
-                                                              │ ConPTY PseudoConsole
-                                                              ▼
-                                                  ┌────────────────────────┐
-                                                  │   powershell.exe / cmd │
-                                                  │   (Windows 11 Native)  │
-                                                  └────────────────────────┘
