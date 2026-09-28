@@ -23,3 +23,8 @@
 ---
 
 ## 🏛️ 工作原理与架构
+
+```mermaid
+flowchart LR
+    A[浏览器视图<br/>xterm.js + Addon-Fit] <-->|WebSocket :7681<br/>实时输入输出 / 窗口尺寸同步| B[Node.js 核心服务<br/>静态托管 + 事件桥接]
+    B <-->|Windows ConPTY<br/>底层伪控制台 API| C[PowerShell / CMD<br/>原生命令行环境]
