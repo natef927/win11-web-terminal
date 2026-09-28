@@ -1,22 +1,14 @@
-@echo off
-chcp 65001 >nul
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines = [System.IO.File]::ReadAllLines('\%~f0', [System.Text.Encoding]::UTF8);$code = ($lines \vert{} Select-Object -Skip 6) -join [Environment]::NewLine; Invoke-Expression$code"
-exit /b
-
-# =======================================================
-# 下方全部为纯 PowerShell 代码（跳过前 6 行执行，零 CMD 转义干扰）
-# =======================================================
-
+@powershell -NoProfile -ExecutionPolicy Bypass -Command "$p='%~f0' -replace '^[\\/]+([A-Za-z]:)', '$1';$c=[System.IO.File]::ReadAllLines($p,[System.Text.Encoding]::UTF8); Invoke-Expression (($c | Select-Object -Skip 2) -join [Environment]::NewLine)" & pause & exit /b
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host "          Win11 Native Web Terminal Setup              " -ForegroundColor Cyan
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. 智能选择安装目录（优先 D 盘，无 D 盘自动降级到 C 盘）
+# 1. 自动选择磁盘（优先 D 盘，无 D 盘自动使用 C 盘）
 $installDir = if (Test-Path "D:\") { "D:\web-terminal" } else { "C:\web-terminal" }
 Write-Host "[*] Install Path: $installDir" -ForegroundColor Gray
 
-# 2. 检查并自动安装 Node.js
+# 2. 检查并自动安装 Node.js 环境
 $nodeInstalled = (Get-Command node -ErrorAction SilentlyContinue) -ne$null
 if (-not $nodeInstalled) {
     Write-Host "[!] Node.js not detected. Starting auto-installation..." -ForegroundColor Yellow
@@ -42,7 +34,6 @@ if (-not $nodeInstalled) {
 
     if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
         Write-Host "[!] Node.js installation finished. Please re-run the script!" -ForegroundColor Yellow
-        pause
         exit
     }
     Write-Host "[OK] Node.js is ready." -ForegroundColor Green
@@ -250,7 +241,7 @@ server.listen(7681, '0.0.0.0', () => {
     $shortcut.Save()
 }
 
-# 4. 启动服务并调起浏览器
+# 4. Launch Service
 Write-Host ""
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host "          Starting service and opening browser...      " -ForegroundColor Cyan
@@ -265,4 +256,3 @@ Start-Process "http://127.0.0.1:7681"
 Write-Host ""
 Write-Host "[OK] Service running in background: http://127.0.0.1:7681" -ForegroundColor Green
 Write-Host ""
-timeout /t 3 >nul
