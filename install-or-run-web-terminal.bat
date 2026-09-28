@@ -4,7 +4,7 @@ Write-Host "          Win11 Native Web Terminal Setup              " -Foreground
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. 自动选择磁盘（优先 D 盘，无 D 盘自动使用 C 盘）
+# 1. 自动选择磁盘（优先 D 盘，无 D 盘自动降级到 C 盘）
 $installDir = if (Test-Path "D:\") { "D:\web-terminal" } else { "C:\web-terminal" }
 Write-Host "[*] Install Path: $installDir" -ForegroundColor Gray
 
@@ -39,28 +39,25 @@ if (-not $nodeInstalled) {
     Write-Host "[OK] Node.js is ready." -ForegroundColor Green
 }
 
-# 3. 部署自检（如果已存在完整部署直接启动）
+# 3. 部署自检与脚本更新
 $isReady = (Test-Path "$installDir\server.js") -and 
            (Test-Path "$installDir\node_modules\node-pty") -and 
            (Test-Path "$installDir\node_modules\@xterm\xterm") -and 
            (Test-Path "$installDir\node_modules\@xterm\addon-fit")
 
-if ($isReady) {
-    Write-Host "[*] Full deployment detected. Launching service..." -ForegroundColor Green
-} else {
-    Write-Host "[1/5] Creating directory: $installDir" -ForegroundColor Cyan
-    if (-not (Test-Path $installDir)) {
-        New-Item -ItemType Directory -Path $installDir -Force | Out-Null
-    }
-    Set-Location $installDir
+if (-not (Test-Path $installDir)) {
+    New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+}
+Set-Location $installDir
 
-    Write-Host "[2/5] Installing npm dependencies..." -ForegroundColor Cyan
+if (-not $isReady) {
+    Write-Host "[1/5] Installing npm dependencies..." -ForegroundColor Cyan
     if (-not (Test-Path "$installDir\package.json")) {
         npm init -y | Out-Null
     }
     npm install ws @xterm/xterm @xterm/addon-fit node-pty --silent
 
-    Write-Host "[3/5] Writing server.js..." -ForegroundColor Cyan
+    Write-Host "[2/5] Writing server.js..." -ForegroundColor Cyan
     $serverCode = @'
 const http = require('http');
 const fs = require('fs');
@@ -214,34 +211,40 @@ server.listen(7681, '0.0.0.0', () => {
 });
 '@
     [System.IO.File]::WriteAllText("$installDir\server.js", $serverCode, [System.Text.Encoding]::UTF8)
-
-    Write-Host "[4/5] Generating helper scripts..." -ForegroundColor Cyan
-    $vbsLines = @(
-        'Set WshShell = CreateObject("WScript.Shell")',
-        "WshShell.CurrentDirectory = `"$installDir`"",
-        'WshShell.Run "node server.js", 0, False'
-    )
-    [System.IO.File]::WriteAllLines("$installDir\start.vbs", $vbsLines, [System.Text.Encoding]::ASCII)
-
-    $batLines = @(
-        '@echo off',
-        'chcp 65001 >nul',
-        'taskkill /f /im node.exe >nul 2>nul',
-        'echo [INFO] Stopped.',
-        'pause'
-    )
-    [System.IO.File]::WriteAllLines("$installDir\stop.bat", $batLines, [System.Text.Encoding]::ASCII)
-
-    Write-Host "[5/5] Creating Desktop shortcut..." -ForegroundColor Cyan
-    $wsh = New-Object -ComObject WScript.Shell
-    $shortcut =$wsh.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\WebTerminal.lnk')
-    $shortcut.TargetPath = "$installDir\start.vbs"
-    $shortcut.WorkingDirectory = "$installDir"
-    $shortcut.Description = "Start Win11 Web Terminal"
-    $shortcut.Save()
 }
 
-# 4. Launch Service
+# 4. 生成或刷新运维脚本（包含后台拉起与自动打开浏览器）
+Write-Host "[*] Updating helper scripts & shortcut..." -ForegroundColor Cyan
+
+# start.vbs: 后台启动 node 服务，并自动调起默认浏览器定位到终端
+$vbsLines = @(
+    'Set WshShell = CreateObject("WScript.Shell")',
+    "WshShell.CurrentDirectory = `"$installDir`"",
+    'WshShell.Run "node server.js", 0, False',
+    'WScript.Sleep 1000',
+    'WshShell.Run "http://127.0.0.1:7681"'
+)
+[System.IO.File]::WriteAllLines("$installDir\start.vbs", $vbsLines, [System.Text.Encoding]::ASCII)
+
+# stop.bat: 一键终止后台 node 进程
+$batLines = @(
+    '@echo off',
+    'chcp 65001 >nul',
+    'taskkill /f /im node.exe >nul 2>nul',
+    'echo [INFO] Web Terminal service stopped.',
+    'pause'
+)
+[System.IO.File]::WriteAllLines("$installDir\stop.bat", $batLines, [System.Text.Encoding]::ASCII)
+
+# 桌面快捷方式：指向 start.vbs
+$wsh = New-Object -ComObject WScript.Shell
+$shortcut =$wsh.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\WebTerminal.lnk')
+$shortcut.TargetPath = "$installDir\start.vbs"
+$shortcut.WorkingDirectory = "$installDir"
+$shortcut.Description = "Start Win11 Web Terminal"
+$shortcut.Save()
+
+# 5. 立即启动当前服务
 Write-Host ""
 Write-Host "=======================================================" -ForegroundColor Cyan
 Write-Host "          Starting service and opening browser...      " -ForegroundColor Cyan
@@ -249,9 +252,6 @@ Write-Host "=======================================================" -Foreground
 
 Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Process "wscript.exe" -ArgumentList "`"$installDir\start.vbs`""
-
-Start-Sleep -Seconds 2
-Start-Process "http://127.0.0.1:7681"
 
 Write-Host ""
 Write-Host "[OK] Service running in background: http://127.0.0.1:7681" -ForegroundColor Green
