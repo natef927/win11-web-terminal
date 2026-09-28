@@ -12,7 +12,7 @@
 
 ## 📖 项目背景与作用
 
-在 Windows 办公与运维场景下，直接访问本地终端往往会有各种受限，而市面上常见的 Web 终端工具存在以下痛点：
+在 Windows 办公与运维场景下，直接访问本地终端往往会有各种限制或困难，而市面上常见的 Web 终端工具存在以下痛点：
 
 1. **WSL / Docker 依赖重**：在纯 Windows 办公机上部署 Linux 容器或子系统过于冗杂，占用数 GB 内存与磁盘空间。
 2. **底层 ConPTY 兼容缺陷**：原生 `ttyd.exe` 在新版 Windows 11 下极易在 WebSocket 握手时闪退崩溃；传统 Node.js `child_process.spawn` 管道模式无法支持交互式命令（导致 SSH、密码盲打、Vim 无法正常输入）。
